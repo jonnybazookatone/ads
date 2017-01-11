@@ -9,4 +9,4 @@ from .metrics import MetricsQuery
 from .export import ExportQuery
 from .search import SearchQuery, query
 from .base import RateLimits
-#from .libraries import LibraryQuery, Library #soon
+from .libraries import LibraryQuery, Library
