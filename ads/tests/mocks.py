@@ -2,11 +2,47 @@
 Mock responses
 """
 
-from httpretty import HTTPretty
+import json
+
+from httpretty import HTTPretty as OriginalHTTPretty
 from .stubdata.solr import example_solr_response
 from .stubdata.metrics import example_metrics_response
 from .stubdata.export import example_export_response
-import json
+
+try:
+    from requests.packages.urllib3.contrib.pyopenssl import inject_into_urllib3, extract_from_urllib3
+    pyopenssl_override = True
+except:
+    pyopenssl_override = False
+
+
+class MyHTTPretty(OriginalHTTPretty):
+    """
+    Taken from: https://github.com/mredar/harvester/commit/228e9c3319ac6de651fc44d977efc3cc7b67e092
+
+    pyopenssl monkey-patches the default ssl_wrap_socket() function in the 'requests' library,
+    but this can stop the HTTPretty socket monkey-patching from working for HTTPS requests.
+
+    Our version extends the base HTTPretty enable() and disable() implementations to undo
+    and redo the pyopenssl monkey-patching, respectively.
+    """
+
+    @classmethod
+    def enable(cls):
+        OriginalHTTPretty.enable()
+        if pyopenssl_override:
+            # Take out the pyopenssl version - use the default implementation
+            extract_from_urllib3()
+
+    @classmethod
+    def disable(cls):
+        OriginalHTTPretty.disable()
+        if pyopenssl_override:
+            # Put the pyopenssl version back in place
+            inject_into_urllib3()
+
+
+HTTPretty = MyHTTPretty
 
 
 class HTTPrettyMock(object):
